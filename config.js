@@ -5,7 +5,7 @@
 const APP_CONFIG = {
   // Your Google OAuth 2.0 Client ID
   // Get it from https://console.cloud.google.com/  (see README)
-  CLIENT_ID: 'YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com',
+  CLIENT_ID: '33627201770-ks4fo1kpdf777h7kanlmva3rtghk7u33.apps.googleusercontent.com',
 
   // The name of the Google Sheet that will be created on first run
   SHEET_TITLE: 'ApartmentApp Master Sheet',
