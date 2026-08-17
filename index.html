@@ -2,11 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Apartment Maintenance App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>The Pride of Tirumala</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pride Apt" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -14,9 +24,10 @@
   <!-- ============ LOGIN SCREEN ============ -->
   <div id="login-screen">
     <div class="login-card">
-      <div class="app-icon">🏢</div>
-      <h2>Apartment Maintenance</h2>
-      <p>Manage maintenance payments &amp; expenses for your apartment complex</p>
+      <div class="app-icon">🏛️</div>
+      <h1 class="login-title">The Pride of Tirumala</h1>
+      <p class="login-sub">Apartment Maintenance Portal</p>
+      <p class="login-desc">Manage maintenance payments &amp; expenses for your apartment complex</p>
 
       <button class="btn btn-google" onclick="signIn()">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -30,7 +41,7 @@
 
       <div id="auth-error" class="hidden"></div>
 
-      <p style="margin-top:1.5rem;font-size:0.8rem;color:#94a3b8;">
+      <p class="login-footer">
         This app accesses your Google Sheets to store apartment data.<br>
         No data is stored on any external server.
       </p>
@@ -39,15 +50,36 @@
 
   <!-- ============ APP SHELL ============ -->
   <div id="app-shell" class="hidden">
-    <header>
-      <h1>🏢 <span>Apartment</span> Maintenance</h1>
-      <nav>
-        <button class="nav-link active" data-page="dashboard" onclick="navigate('dashboard')">Dashboard</button>
-        <button class="nav-link" data-page="flats" onclick="navigate('flats')">Flats &amp; Payments</button>
-        <button class="nav-link" data-page="expenses" onclick="navigate('expenses')">Expenses</button>
+
+    <!-- Top Header (desktop + mobile) -->
+    <header id="top-header">
+      <div class="header-left">
+        <span class="header-icon">🏛️</span>
+        <div class="header-title-group">
+          <h1 class="header-title">The Pride of Tirumala</h1>
+          <span class="header-subtitle">Maintenance Portal</span>
+        </div>
+      </div>
+
+      <!-- Desktop nav -->
+      <nav id="desktop-nav">
+        <button class="nav-link active" data-page="dashboard" onclick="navigate('dashboard')">
+          <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <button class="nav-link" data-page="flats" onclick="navigate('flats')">
+          <span class="nav-icon">🏠</span> Flats &amp; Payments
+        </button>
+        <button class="nav-link" data-page="expenses" onclick="navigate('expenses')">
+          <span class="nav-icon">💸</span> Expenses
+        </button>
       </nav>
+
       <div class="header-right">
         <span id="user-name"></span>
+        <span id="access-badge" class="access-badge hidden"></span>
+        <button id="backup-btn" class="btn btn-backup hidden" onclick="backupSheet()" title="Create a timestamped backup of the Google Sheet">
+          💾 Backup
+        </button>
         <button class="btn btn-signout" onclick="signOut()">Sign Out</button>
       </div>
     </header>
@@ -55,6 +87,26 @@
     <main id="main-content">
       <div class="loading">Loading…</div>
     </main>
+
+    <!-- Mobile bottom navigation -->
+    <nav id="mobile-nav">
+      <button class="mob-nav-btn active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="mob-nav-icon">📊</span>
+        <span class="mob-nav-label">Dashboard</span>
+      </button>
+      <button class="mob-nav-btn" data-page="flats" onclick="navigate('flats')">
+        <span class="mob-nav-icon">🏠</span>
+        <span class="mob-nav-label">Flats</span>
+      </button>
+      <button class="mob-nav-btn" data-page="expenses" onclick="navigate('expenses')">
+        <span class="mob-nav-icon">💸</span>
+        <span class="mob-nav-label">Expenses</span>
+      </button>
+      <button id="mob-backup-btn" class="mob-nav-btn hidden" onclick="backupSheet()">
+        <span class="mob-nav-icon">💾</span>
+        <span class="mob-nav-label">Backup</span>
+      </button>
+    </nav>
   </div>
 
   <!-- ============ MODAL ============ -->
@@ -72,10 +124,7 @@
   <div id="toast"></div>
 
   <!-- ============ SCRIPTS ============ -->
-  <!-- Config FIRST -->
   <script src="config.js"></script>
-
-  <!-- App scripts -->
   <script src="js/auth.js"></script>
   <script src="js/sheets.js"></script>
   <script src="js/dashboard.js"></script>
@@ -83,7 +132,7 @@
   <script src="js/expenses.js"></script>
   <script src="js/app.js"></script>
 
-  <!-- Google APIs — callbacks defined above -->
+  <!-- Google APIs -->
   <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
   <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" async defer></script>
 

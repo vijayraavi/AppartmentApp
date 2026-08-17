@@ -9,6 +9,7 @@ async function renderFlats() {
   const now = new Date();
   let selMonth = now.getMonth() + 1;
   let selYear = now.getFullYear();
+  const readonly = !isOwner();
 
   async function render() {
     try {
@@ -22,6 +23,16 @@ async function renderFlats() {
         .map((f) => {
           const paid = paidSet.has(f['Flat No']);
           const role = f['Role'] ? `<span class="role-badge">${f['Role']}</span>` : '';
+          const actions = readonly
+            ? `<span class="muted" style="font-size:0.8rem">View only</span>`
+            : `
+              ${
+                !paid
+                  ? `<button class="btn btn-sm btn-primary" onclick="markPaid('${f['Flat No']}', ${selMonth}, ${selYear})">Mark Paid</button>`
+                  : `<button class="btn btn-sm btn-ghost" disabled>Paid</button>`
+              }
+              <button class="btn btn-sm btn-ghost" onclick="editFlat('${f['Flat No']}', '${(f['Owner Name'] || '').replace(/'/g, "\\'")}', '${(f['Phone'] || '').replace(/'/g, "\\'")}')">Edit</button>
+            `;
           return `
           <tr>
             <td><strong>Flat ${f['Flat No']}</strong> ${role}</td>
@@ -32,20 +43,15 @@ async function renderFlats() {
                 ${paid ? '✓ Paid' : '✗ Pending'}
               </span>
             </td>
-            <td>
-              ${
-                !paid
-                  ? `<button class="btn btn-sm btn-primary" onclick="markPaid('${f['Flat No']}', ${selMonth}, ${selYear})">Mark Paid</button>`
-                  : `<button class="btn btn-sm btn-ghost" disabled>Paid</button>`
-              }
-              <button class="btn btn-sm btn-ghost" onclick="editFlat('${f['Flat No']}', '${f['Owner Name']}', '${f['Phone']}')">Edit</button>
-            </td>
+            <td>${actions}</td>
           </tr>`;
         })
         .join('');
 
       main.innerHTML = `
-        <h2 class="page-title">Flats & Payments</h2>
+        <h2 class="page-title">Flats &amp; Payments</h2>
+
+        ${readonly ? `<div class="readonly-notice">👁 You have read-only access. Contact an owner to make changes.</div>` : ''}
 
         <div class="toolbar">
           <div class="month-picker">
@@ -84,7 +90,6 @@ async function renderFlats() {
         </div>
       `;
 
-      // Month filter handler
       window.applyMonthFilter = () => {
         selMonth = Number(document.getElementById('sel-month').value);
         selYear = Number(document.getElementById('sel-year').value);
@@ -98,6 +103,7 @@ async function renderFlats() {
   await render();
 
   window.markPaid = async (flatNo, month, year) => {
+    if (!isOwner()) { showToast('Write access required', 'error'); return; }
     const amount = APP_CONFIG.MONTHLY_MAINTENANCE;
     const paidDate = new Date().toISOString().split('T')[0];
     try {
@@ -111,6 +117,7 @@ async function renderFlats() {
   };
 
   window.editFlat = (flatNo, ownerName, phone) => {
+    if (!isOwner()) { showToast('Write access required', 'error'); return; }
     showModal(`
       <h3>Edit Flat ${flatNo}</h3>
       <label>Owner Name</label>
