@@ -1,16 +1,21 @@
 # 🏢 Apartment Maintenance App
 
 A simple web app to manage monthly maintenance payments and expenses for your apartment complex.  
-**Backend: Google Sheets** (auto-created on first run) | **Auth: Google OAuth2** | **Hosting: GitHub Pages or Azure Static Web Apps**
+**Backend: Google Sheets** (auto-created on first run) | **Auth: Google OAuth2** | **Hosting: GitHub Pages**
+
+🌐 **Live App:** [https://vijayraavi.github.io/AppartmentApp/](https://vijayraavi.github.io/AppartmentApp/)
 
 ---
 
 ## Features
 
-- **Dashboard** — Monthly collected amount, expenses, balance, pending flats
+- **Dashboard** — Monthly collected amount, expenses, balance (surplus/deficit), pending flats
 - **Flats & Payments** — 10 flats (101–502), mark monthly payments, edit owner details
 - **Expenses** — Add/view watchman salary, generator fuel, water bill, WiFi, electricity, lift maintenance, misc
+  - 📅 **Month filter** — view expenses for any month/year
+  - 🖨️ **Export PDF** — print/save monthly expense report as PDF
 - **Google Sheets** — All data stored in a master sheet auto-created in your Google Drive on first login
+  - 📊 **Monthly Summary tab** — auto-computed surplus/deficit for every month of the year
 
 ---
 
@@ -50,64 +55,30 @@ with your actual Client ID.
 
 ---
 
-## Hosting Option A: GitHub Pages (Free, Recommended)
+## Hosting: GitHub Pages (Free, Recommended)
 
-### Deploy
+### Live URL
+
+**[https://vijayraavi.github.io/AppartmentApp/](https://vijayraavi.github.io/AppartmentApp/)**
+
+### Deploy (one-time setup)
 
 1. Push this repo to GitHub (if not already done)
 2. Go to your repo on GitHub → **Settings → Pages**
 3. Under **Source**, select **Deploy from a branch** → `main` branch → `/ (root)` folder → **Save**
-4. Your app will be available at: `https://YOUR_GITHUB_USERNAME.github.io/AppartmentApp/`
+4. Your app will be available at: `https://vijayraavi.github.io/AppartmentApp/`
 
 ### Add GitHub Pages URL to OAuth
 
 Back in Google Cloud Console → **Credentials → your OAuth client** → add to **Authorised JavaScript origins**:
 ```
-https://YOUR_GITHUB_USERNAME.github.io
+https://vijayraavi.github.io
 ```
 Save. It may take a few minutes to propagate.
 
 ### Share with others
 
-Give the URL to the president and the third user. They need to sign in with the Gmail accounts you added as **Test users** in the consent screen.
-
----
-
-## Hosting Option B: Azure Static Web Apps
-
-Use this if you prefer Azure or need a custom domain.
-
-### Prerequisites
-- Azure account (free tier works)
-- GitHub repo with this code
-
-### Steps
-
-1. Go to [https://portal.azure.com](https://portal.azure.com)
-2. Search for **Static Web Apps** → **+ Create**
-3. Fill in:
-   - **Subscription**: your subscription
-   - **Resource group**: Create new → `apartment-app-rg`
-   - **Name**: `apartment-maintenance-app`
-   - **Plan type**: Free
-   - **Region**: choose nearest (e.g., East Asia, South India)
-   - **Source**: GitHub
-   - Click **Sign in with GitHub** and authorize
-   - Select your **Organization**, **Repository** (`AppartmentApp`), **Branch** (`main`)
-   - **Build Presets**: Custom
-   - **App location**: `/`
-   - **API location**: leave empty
-   - **Output location**: leave empty
-4. Click **Review + Create** → **Create**
-5. Azure will add a GitHub Actions workflow to your repo automatically
-6. After deployment (~2 min), your app URL appears in the Azure portal (e.g., `https://happy-beach-12345.azurestaticapps.net`)
-
-### Add Azure URL to OAuth
-
-Back in Google Cloud Console → **Credentials → your OAuth client** → add to **Authorised JavaScript origins**:
-```
-https://YOUR_AZURE_URL.azurestaticapps.net
-```
+Give the URL `https://vijayraavi.github.io/AppartmentApp/` to the president and the third user. They need to sign in with the Gmail accounts you added as **Test users** in the consent screen.
 
 ---
 
@@ -132,6 +103,14 @@ https://YOUR_AZURE_URL.azurestaticapps.net
 | **Flats** | Flat numbers, owner names, phones, roles |
 | **Payments** | All payment records (flat, month, year, amount, date) |
 | **Expenses** | All expense records (date, category, amount, description) |
+| **Monthly Summary** | Auto-computed surplus/deficit for each month (formulas, read-only) |
+
+The **Monthly Summary** tab shows for each month:
+- Expected Collection (number of flats × monthly maintenance)
+- Total Collected (from Payments sheet)
+- Total Expenses (from Expenses sheet)
+- Balance = Collected − Expenses (positive = **Surplus**, negative = **Deficit**)
+- Status label: *Surplus / Deficit / Break Even*
 
 You can open the sheet directly in Google Sheets for manual edits anytime.
 
