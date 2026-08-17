@@ -7,6 +7,7 @@ const SHEET_NAMES = {
   FLATS: 'Flats',
   PAYMENTS: 'Payments',
   EXPENSES: 'Expenses',
+  SUMMARY: 'Monthly Summary',
 };
 
 let spreadsheetId = null;
@@ -23,6 +24,7 @@ async function initSheets() {
     try {
       await gapi.client.sheets.spreadsheets.get({ spreadsheetId: savedId });
       spreadsheetId = savedId;
+      await ensureSummarySheet(spreadsheetId);
       return spreadsheetId;
     } catch (_) {
       localStorage.removeItem('spreadsheetId');
@@ -37,6 +39,7 @@ async function initSheets() {
   if (search.result.files && search.result.files.length > 0) {
     spreadsheetId = search.result.files[0].id;
     localStorage.setItem('spreadsheetId', spreadsheetId);
+    await ensureSummarySheet(spreadsheetId);
     return spreadsheetId;
   }
 
@@ -55,6 +58,7 @@ async function createMasterSheet() {
         { properties: { title: SHEET_NAMES.FLATS } },
         { properties: { title: SHEET_NAMES.PAYMENTS } },
         { properties: { title: SHEET_NAMES.EXPENSES } },
+        { properties: { title: SHEET_NAMES.SUMMARY } },
       ],
     },
   });
@@ -96,6 +100,68 @@ async function seedMasterSheet(id) {
   await writeRange(id, `${SHEET_NAMES.EXPENSES}!A1`, [
     ['Date', 'Category', 'Amount', 'Description', 'Added By'],
   ]);
+
+  // Summary sheet header
+  await seedSummarySheet(id);
+}
+
+// ---- Summary sheet ----
+
+// Month names for sheet formulas
+const MONTH_NAMES_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+async function seedSummarySheet(id) {
+  const headers = [
+    'Month', 'Year',
+    'Expected Collection', 'Total Collected',
+    'Total Expenses', 'Balance (Surplus/Deficit)',
+    'Status',
+  ];
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const rows = [headers];
+
+  for (let m = 1; m <= 12; m++) {
+    const monthStr = MONTH_NAMES_SHORT[m - 1];
+    const totalFlats = APP_CONFIG.FLATS.length;
+    const expected = totalFlats * APP_CONFIG.MONTHLY_MAINTENANCE;
+    const rowIndex = m + 1; // row in the summary sheet (row 1 = header)
+
+    // Month stored as number in Payments sheet; expenses use date strings
+    const collectedFormula =
+      `=SUMPRODUCT((VALUE(${SHEET_NAMES.PAYMENTS}!B$2:B$10000)=${m})*(VALUE(${SHEET_NAMES.PAYMENTS}!C$2:C$10000)=${currentYear})*VALUE(${SHEET_NAMES.PAYMENTS}!D$2:D$10000))`;
+    const expensesFormula =
+      `=SUMPRODUCT((MONTH(DATEVALUE(${SHEET_NAMES.EXPENSES}!A$2:A$10000))=${m})*(YEAR(DATEVALUE(${SHEET_NAMES.EXPENSES}!A$2:A$10000))=${currentYear})*VALUE(${SHEET_NAMES.EXPENSES}!C$2:C$10000))`;
+    const balanceFormula = `=D${rowIndex}-E${rowIndex}`;
+    const statusFormula = `=IF(F${rowIndex}>0,"Surplus",IF(F${rowIndex}<0,"Deficit","Break Even"))`;
+
+    rows.push([monthStr, currentYear, expected, collectedFormula, expensesFormula, balanceFormula, statusFormula]);
+  }
+
+  await writeRange(id, `${SHEET_NAMES.SUMMARY}!A1`, rows);
+}
+
+async function ensureSummarySheet(id) {
+  try {
+    const meta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: id });
+    const sheetTitles = meta.result.sheets.map((s) => s.properties.title);
+    if (!sheetTitles.includes(SHEET_NAMES.SUMMARY)) {
+      // Add the tab
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: id,
+        resource: {
+          requests: [{ addSheet: { properties: { title: SHEET_NAMES.SUMMARY } } }],
+        },
+      });
+      await seedSummarySheet(id);
+    }
+  } catch (_) {
+    // Non-fatal: summary sheet is a bonus feature
+  }
 }
 
 // ---- Low-level helpers ----

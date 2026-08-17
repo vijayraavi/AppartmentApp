@@ -6,12 +6,23 @@ async function renderExpenses() {
   const main = document.getElementById('main-content');
   main.innerHTML = `<div class="loading">Loading expenses…</div>`;
 
+  const now = new Date();
+  let filterMonth = 0;      // 0 = all months
+  let filterYear = now.getFullYear();
+
   async function render() {
     try {
-      const expenses = await getExpenses();
+      const allExpenses = await getExpenses();
 
-      // Group by year-month for display
-      const rows = expenses
+      // Apply month/year filter for the monthly report
+      const filtered = filterMonth === 0
+        ? allExpenses
+        : allExpenses.filter((e) => {
+            const d = new Date(e['Date']);
+            return d.getMonth() + 1 === filterMonth && d.getFullYear() === filterYear;
+          });
+
+      const rows = filtered
         .slice()
         .reverse()
         .map(
@@ -26,9 +37,9 @@ async function renderExpenses() {
         )
         .join('') || '<tr><td colspan="5" class="muted center">No expenses recorded yet.</td></tr>';
 
-      // Category totals
+      // Category totals for filtered data
       const totals = {};
-      expenses.forEach((e) => {
+      filtered.forEach((e) => {
         totals[e['Category']] = (totals[e['Category']] || 0) + Number(e['Amount'] || 0);
       });
       const totalRows = Object.entries(totals)
@@ -42,38 +53,69 @@ async function renderExpenses() {
         )
         .join('') || '<tr><td colspan="2" class="muted">—</td></tr>';
 
-      const grandTotal = expenses.reduce((s, e) => s + Number(e['Amount'] || 0), 0);
+      const grandTotal = filtered.reduce((s, e) => s + Number(e['Amount'] || 0), 0);
+
+      const periodLabel = filterMonth === 0
+        ? `All of ${filterYear}`
+        : `${monthName(filterMonth)} ${filterYear}`;
+
+      const monthOptions = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        .map((m) => `<option value="${m}" ${m === filterMonth ? 'selected' : ''}>${m === 0 ? 'All Months' : monthName(m)}</option>`)
+        .join('');
+      const yearOptions = [filterYear - 1, filterYear, filterYear + 1]
+        .map((y) => `<option value="${y}" ${y === filterYear ? 'selected' : ''}>${y}</option>`)
+        .join('');
 
       main.innerHTML = `
         <h2 class="page-title">Expenses</h2>
 
         <div class="toolbar">
           <button class="btn btn-primary" onclick="openAddExpense()">+ Add Expense</button>
+          <div class="month-picker">
+            <label>Month:</label>
+            <select id="exp-sel-month">${monthOptions}</select>
+            <select id="exp-sel-year">${yearOptions}</select>
+            <button class="btn btn-primary" onclick="applyExpenseFilter()">Go</button>
+            <button class="btn btn-ghost" onclick="exportExpensesPDF()" title="Export current view as PDF">🖨️ Export PDF</button>
+          </div>
         </div>
 
-        <div class="section-grid">
-          <div class="card">
-            <h3>All-time by Category</h3>
-            <table class="data-table">
-              <thead><tr><th>Category</th><th>Total</th></tr></thead>
-              <tbody>${totalRows}</tbody>
-              <tfoot>
-                <tr class="total-row">
-                  <td><strong>Grand Total</strong></td>
-                  <td class="amount"><strong>₹${grandTotal.toLocaleString('en-IN')}</strong></td>
-                </tr>
-              </tfoot>
-            </table>
+        <div id="pdf-report">
+          <div class="pdf-header print-only">
+            <h2>🏢 Apartment Maintenance — Expense Report</h2>
+            <p>${periodLabel}</p>
           </div>
-          <div class="card">
-            <h3>Recent Expenses</h3>
-            <table class="data-table">
-              <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Description</th><th>By</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
+
+          <div class="section-grid">
+            <div class="card">
+              <h3>By Category — ${periodLabel}</h3>
+              <table class="data-table">
+                <thead><tr><th>Category</th><th>Total</th></tr></thead>
+                <tbody>${totalRows}</tbody>
+                <tfoot>
+                  <tr class="total-row">
+                    <td><strong>Grand Total</strong></td>
+                    <td class="amount"><strong>₹${grandTotal.toLocaleString('en-IN')}</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div class="card">
+              <h3>Expense Details — ${periodLabel}</h3>
+              <table class="data-table">
+                <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Description</th><th>By</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
           </div>
         </div>
       `;
+
+      window.applyExpenseFilter = () => {
+        filterMonth = Number(document.getElementById('exp-sel-month').value);
+        filterYear = Number(document.getElementById('exp-sel-year').value);
+        render();
+      };
     } catch (err) {
       main.innerHTML = `<div class="error">Error: ${err.message}</div>`;
     }
@@ -121,5 +163,11 @@ async function renderExpenses() {
         showToast(`Error: ${err.message}`, 'error');
       }
     });
+  };
+
+  window.exportExpensesPDF = () => {
+    document.body.classList.add('printing-expenses');
+    window.print();
+    document.body.classList.remove('printing-expenses');
   };
 }
