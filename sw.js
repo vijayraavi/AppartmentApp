@@ -35,9 +35,19 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   // Network-first for Google APIs; cache-first for app shell
-  if (e.request.url.includes('googleapis.com') || e.request.url.includes('accounts.google.com')) {
+  const url = e.request.url;
+  try {
+    const parsed = new URL(url);
+    const isGoogleApi = parsed.hostname === 'apis.google.com'
+      || parsed.hostname === 'accounts.google.com'
+      || parsed.hostname.endsWith('.googleapis.com');
+    if (isGoogleApi) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
+    }
+  } catch (_) {
+    // non-http requests – fall through to cache-first
+  }
   }
   e.respondWith(
     caches.match(e.request).then((cached) => cached || fetch(e.request))

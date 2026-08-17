@@ -23,7 +23,8 @@ async function renderFlats() {
         .map((f) => {
           const paid = paidSet.has(f['Flat No']);
           const role = f['Role'] ? `<span class="role-badge">${f['Role']}</span>` : '';
-          const actions = readonly
+          const safeOwner = (f['Owner Name'] || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const safePhone = (f['Phone'] || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             ? `<span class="muted" style="font-size:0.8rem">View only</span>`
             : `
               ${
@@ -31,7 +32,7 @@ async function renderFlats() {
                   ? `<button class="btn btn-sm btn-primary" onclick="markPaid('${f['Flat No']}', ${selMonth}, ${selYear})">Mark Paid</button>`
                   : `<button class="btn btn-sm btn-ghost" disabled>Paid</button>`
               }
-              <button class="btn btn-sm btn-ghost" onclick="editFlat('${f['Flat No']}', '${(f['Owner Name'] || '').replace(/'/g, "\\'")}', '${(f['Phone'] || '').replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn btn-sm btn-ghost" onclick="editFlat('${f['Flat No']}', '${safeOwner}', '${safePhone}')">Edit</button>
             `;
           return `
           <tr>
