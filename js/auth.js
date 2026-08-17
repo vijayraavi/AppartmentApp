@@ -5,16 +5,19 @@
 const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
 ].join(' ');
 
 let tokenClient = null;
 let accessToken = null;
+let _userProfile = null;   // { email, name }
 
 function initAuth(onSignedIn) {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: APP_CONFIG.CLIENT_ID,
     scope: SCOPES,
-    callback: (response) => {
+    callback: async (response) => {
       if (response.error) {
         console.error('Auth error:', response.error);
         showAuthError(response.error);
@@ -23,6 +26,7 @@ function initAuth(onSignedIn) {
       accessToken = response.access_token;
       gapi.client.setToken({ access_token: accessToken });
       saveTokenToSession(response);
+      await fetchUserProfile();
       onSignedIn();
     },
   });
@@ -32,8 +36,30 @@ function initAuth(onSignedIn) {
   if (saved) {
     accessToken = saved.access_token;
     gapi.client.setToken({ access_token: accessToken });
+    // Profile may be cached in session storage
+    const cachedProfile = sessionStorage.getItem('user_profile');
+    if (cachedProfile) {
+      try { _userProfile = JSON.parse(cachedProfile); } catch (_) {}
+    }
     onSignedIn();
   }
+}
+
+async function fetchUserProfile() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      _userProfile = { email: data.email || '', name: data.name || data.email || '' };
+      sessionStorage.setItem('user_profile', JSON.stringify(_userProfile));
+    }
+  } catch (_) {}
+}
+
+function getCurrentUserProfile() {
+  return _userProfile;
 }
 
 function signIn() {
@@ -49,7 +75,9 @@ function signOut() {
     gapi.client.setToken(null);
   }
   accessToken = null;
+  _userProfile = null;
   sessionStorage.removeItem('gapi_token');
+  sessionStorage.removeItem('user_profile');
   window.location.reload();
 }
 

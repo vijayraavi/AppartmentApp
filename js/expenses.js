@@ -10,6 +10,8 @@ async function renderExpenses() {
   let filterMonth = 0;      // 0 = all months
   let filterYear = now.getFullYear();
 
+  const readonly = !isOwner();
+
   async function render() {
     try {
       const allExpenses = await getExpenses();
@@ -69,8 +71,10 @@ async function renderExpenses() {
       main.innerHTML = `
         <h2 class="page-title">Expenses</h2>
 
+        ${readonly ? `<div class="readonly-notice">👁 You have read-only access. Contact an owner to make changes.</div>` : ''}
+
         <div class="toolbar">
-          <button class="btn btn-primary" onclick="openAddExpense()">+ Add Expense</button>
+          ${!readonly ? `<button class="btn btn-primary" onclick="openAddExpense()">+ Add Expense</button>` : ''}
           <div class="month-picker">
             <label>Month:</label>
             <select id="exp-sel-month">${monthOptions}</select>
@@ -82,7 +86,7 @@ async function renderExpenses() {
 
         <div id="pdf-report">
           <div class="pdf-header print-only">
-            <h2>🏢 Apartment Maintenance — Expense Report</h2>
+            <h2>🏛️ ${APP_CONFIG.APARTMENT_NAME} — Expense Report</h2>
             <p>${periodLabel}</p>
           </div>
 
@@ -124,6 +128,7 @@ async function renderExpenses() {
   await render();
 
   window.openAddExpense = () => {
+    if (!isOwner()) { showToast('Write access required', 'error'); return; }
     const catOptions = APP_CONFIG.EXPENSE_CATEGORIES.map(
       (c) => `<option value="${c}">${c}</option>`
     ).join('');
